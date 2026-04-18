@@ -1,0 +1,62 @@
+# -----------------------
+# Root
+# -----------------------
+.env
+.env.*
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# -----------------------
+# Node (Server)
+# -----------------------
+node_modules/
+server/node_modules/
+
+# Build outputs
+dist/
+build/
+server/build/
+
+# -----------------------
+# React (Client)
+# -----------------------
+client/node_modules/
+client/build/
+
+# React environment files
+client/.env
+client/.env.*
+
+# -----------------------
+# Cache & temp
+# -----------------------
+.cache/
+*.tmp
+*.temp
+
+# -----------------------
+# Testing
+# -----------------------
+coverage/
+
+# -----------------------
+# MongoDB (local files if any)
+# -----------------------
+*.db
+*.sqlite
+
+# -----------------------
+# Optional (keep if needed)
+# -----------------------
+# package-lock.json
+# yarn.lock
