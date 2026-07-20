@@ -24,6 +24,7 @@ export default function VideoMeetComponent() {
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [isSharing, setIsSharing] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -85,9 +86,16 @@ export default function VideoMeetComponent() {
     const socket = io(backendUrl, { transports: ["websocket", "polling"] });
     socketRef.current = socket;
     socket.on("signal", (fromId, message) => handleSignal(fromId, message).catch(console.error));
-    socket.on("connect", () => { socketIdRef.current = socket.id; socket.emit("join-call", roomId); });
+    socket.on("connect", () => {
+      socketIdRef.current = socket.id;
+      setSocketConnected(true);
+      socket.emit("join-call", roomId);
+    });
+    socket.on("disconnect", () => setSocketConnected(false));
+    socket.on("connect_error", () => setSocketConnected(false));
     socket.on("chat-message", (text, sender, senderId, messageId) => {
-      setMessages((current) => current.some((item) => item.id === messageId) ? current : [...current, { id: messageId, text, sender, own: senderId === socket.id }]);
+      const id = messageId || `${senderId || "guest"}-${Date.now()}-${Math.random()}`;
+      setMessages((current) => current.some((item) => item.id === id) ? current : [...current, { id, text: String(text), sender: sender || "Guest", own: senderId === socket.id }]);
     });
     socket.on("user-left", (id) => {
       peersRef.current[id]?.close();
@@ -146,7 +154,7 @@ export default function VideoMeetComponent() {
 
   const sendMessage = (text) => {
     if (!socketRef.current?.connected) return false;
-    socketRef.current.emit("chat-message", { text, sender: username });
+    socketRef.current.emit("chat-message", text, username);
     return true;
   };
 
@@ -165,6 +173,6 @@ export default function VideoMeetComponent() {
   return inLobby ? (
     <LobbyPage stream={localStream} mediaError={mediaError} username={username} setUsername={setUsername} connect={connect} videoEnabled={videoEnabled} audioEnabled={audioEnabled} toggleVideo={() => toggleTrack("video")} toggleAudio={() => toggleTrack("audio")} />
   ) : (
-    <MeetingPage localStream={previewStream} videos={videos} username={username} messages={messages} sendMessage={sendMessage} videoEnabled={videoEnabled} audioEnabled={audioEnabled} isSharing={isSharing} toggleVideo={() => toggleTrack("video")} toggleAudio={() => toggleTrack("audio")} toggleScreenShare={toggleScreenShare} leaveMeeting={leaveMeeting} />
+    <MeetingPage roomId={roomId} localStream={previewStream} videos={videos} username={username} messages={messages} sendMessage={sendMessage} socketConnected={socketConnected} videoEnabled={videoEnabled} audioEnabled={audioEnabled} isSharing={isSharing} toggleVideo={() => toggleTrack("video")} toggleAudio={() => toggleTrack("audio")} toggleScreenShare={toggleScreenShare} leaveMeeting={leaveMeeting} />
   );
 }

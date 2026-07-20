@@ -32,10 +32,10 @@ export const connetTosocket = (server) => {
       }
     });
 
-    socket.on("chat-message", (payload) => {
+    socket.on("chat-message", (payload, legacySender) => {
       const roomId = socketRooms.get(socket.id);
       const text = typeof payload === "string" ? payload : payload?.text;
-      const sender = typeof payload === "string" ? "Guest" : payload?.sender;
+      const sender = typeof payload === "string" ? legacySender : payload?.sender;
       if (!roomId || !String(text || "").trim()) return;
 
       const message = {

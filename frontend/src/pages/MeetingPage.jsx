@@ -17,7 +17,7 @@ function ControlButton({ active = true, danger = false, label, children, onClick
       onClick={onClick}
       aria-label={label}
       title={label}
-      className={`flex min-h-12 min-w-12 cursor-pointer items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:px-4 ${
+      className={`flex size-11 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border px-2 text-sm font-semibold outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:min-h-12 sm:w-auto sm:min-w-12 sm:px-3 lg:px-4 ${
         danger ? "border-red-500 bg-red-500 text-white hover:bg-red-600" : active
           ? "border-white/10 bg-slate-800 text-slate-100 hover:bg-slate-700"
           : "border-red-400/30 bg-red-500/15 text-red-300 hover:bg-red-500/25"
@@ -29,15 +29,20 @@ function ControlButton({ active = true, danger = false, label, children, onClick
 }
 
 export function MeetingPage({
-  localStream, videos, username, messages, sendMessage, videoEnabled, audioEnabled,
+  roomId, localStream, videos, username, messages, sendMessage, socketConnected, videoEnabled, audioEnabled,
   isSharing, toggleVideo, toggleAudio, toggleScreenShare, leaveMeeting,
 }) {
   const [panel, setPanel] = useState(null);
   const [message, setMessage] = useState("");
   const [copied, setCopied] = useState(false);
   const [actionError, setActionError] = useState("");
+  const chatEndRef = useRef(null);
   const participants = videos.length + 1;
-  const roomName = window.location.pathname.slice(1) || "home";
+  const roomName = roomId || "home";
+
+  useEffect(() => {
+    if (panel === "chat") chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, panel]);
 
   const copyLink = async () => {
     await navigator.clipboard.writeText(window.location.href);
@@ -68,17 +73,17 @@ export function MeetingPage({
     <div className="flex min-h-dvh flex-col overflow-hidden bg-slate-950 text-slate-100">
       <header className="flex min-h-16 items-center justify-between gap-3 border-b border-white/10 bg-slate-950 px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-blue-600"><Video className="size-5" /></div>
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-700"><Video className="size-5" /></div>
           <div className="min-w-0">
             <div className="flex items-center gap-2"><h1 className="truncate text-sm font-bold sm:text-base">{roomName}</h1><ShieldCheck className="size-4 text-emerald-400" aria-label="Secure meeting" /></div>
             <p className="text-xs text-slate-400">AuraMeet · Live now</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={copyLink} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-slate-900 px-3 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400">
+          <button onClick={copyLink} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-slate-900 px-3 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
             {copied ? <Check className="size-4 text-emerald-400" /> : <Link2 className="size-4" />}<span className="hidden sm:inline">{copied ? "Copied" : "Invite"}</span>
           </button>
-          <button aria-label="More meeting options" className="flex size-11 cursor-pointer items-center justify-center rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"><MoreHorizontal /></button>
+          <button aria-label="More meeting options" className="flex size-11 cursor-pointer items-center justify-center rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"><MoreHorizontal /></button>
         </div>
       </header>
 
@@ -88,7 +93,7 @@ export function MeetingPage({
           <div className={`grid h-full max-h-[calc(100dvh-11rem)] w-full gap-3 ${participants === 1 ? "max-w-5xl grid-cols-1" : "max-w-7xl grid-cols-1 sm:grid-cols-2"}`}>
             <div className="relative min-h-56 overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
               <StreamVideo stream={localStream} muted className={`h-full w-full object-cover ${isSharing ? "" : "-scale-x-100"} ${videoEnabled || isSharing ? "" : "invisible"}`} />
-              {!videoEnabled && !isSharing && <div className="absolute inset-0 flex items-center justify-center"><div className="flex size-20 items-center justify-center rounded-full bg-blue-600 text-2xl font-bold">{username.slice(0, 1).toUpperCase()}</div></div>}
+              {!videoEnabled && !isSharing && <div className="absolute inset-0 flex items-center justify-center"><div className="flex size-20 items-center justify-center rounded-full bg-emerald-700 text-2xl font-bold">{username.slice(0, 1).toUpperCase()}</div></div>}
               <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-lg bg-slate-950/80 px-2.5 py-1.5 text-xs font-semibold backdrop-blur"><span>{username} (You)</span>{audioEnabled ? <Mic className="size-3.5 text-emerald-400" /> : <MicOff className="size-3.5 text-red-400" />}</div>
             </div>
             {videos.map(({ socketId, stream }, index) => (
@@ -101,26 +106,27 @@ export function MeetingPage({
         </section>
 
         {panel && (
-          <aside className="absolute inset-y-0 right-0 z-20 flex w-full max-w-sm flex-col border-l border-white/10 bg-slate-950 shadow-2xl sm:relative" aria-label={`${panel} panel`}>
-            <div className="flex min-h-16 items-center justify-between border-b border-white/10 px-5"><h2 className="font-bold">{panel === "chat" ? "In-call messages" : `People (${participants})`}</h2><button onClick={() => setPanel(null)} aria-label="Close panel" className="flex size-11 cursor-pointer items-center justify-center rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white"><X /></button></div>
+          <aside className="fixed inset-x-0 bottom-18 top-16 z-40 flex flex-col border-l border-white/10 bg-slate-950 sm:absolute sm:inset-y-0 sm:left-auto sm:right-0 sm:max-w-sm" aria-label={`${panel} panel`}>
+            <div className="flex min-h-16 items-center justify-between border-b border-white/10 px-5"><div><h2 className="font-bold">{panel === "chat" ? "Meeting chat" : `People (${participants})`}</h2>{panel === "chat" && <p className={`mt-0.5 text-xs ${socketConnected ? "text-emerald-400" : "text-amber-300"}`}>{socketConnected ? "Connected" : "Reconnecting…"}</p>}</div><button onClick={() => setPanel(null)} aria-label="Close panel" className="flex size-11 cursor-pointer items-center justify-center rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white"><X /></button></div>
             {panel === "chat" ? <>
               <div className="flex-1 space-y-4 overflow-y-auto p-5" aria-live="polite">
-                {messages.length === 0 ? <div className="flex h-full flex-col items-center justify-center text-center"><MessageSquare className="mb-3 size-10 text-slate-600" /><p className="font-semibold">No messages yet</p><p className="mt-1 text-sm text-slate-400">Start the conversation with everyone.</p></div> : messages.map((item) => <div key={item.id} className={`max-w-[88%] ${item.own ? "ml-auto" : ""}`}><p className="mb-1 text-xs text-slate-500">{item.sender}</p><p className={`rounded-2xl px-3 py-2 text-sm ${item.own ? "bg-blue-600 text-white" : "bg-slate-800"}`}>{item.text}</p></div>)}
+                {messages.length === 0 ? <div className="flex h-full flex-col items-center justify-center text-center"><MessageSquare className="mb-3 size-10 text-slate-600" /><p className="font-semibold">No messages yet</p><p className="mt-1 text-sm text-slate-400">Start the conversation with everyone.</p></div> : messages.map((item) => <div key={item.id} className={`max-w-[88%] ${item.own ? "ml-auto" : ""}`}><p className="mb-1 text-xs text-slate-500">{item.sender}</p><p className={`rounded-lg px-3 py-2 text-sm ${item.own ? "bg-emerald-700 text-white" : "bg-slate-800"}`}>{item.text}</p></div>)}
+                <div ref={chatEndRef} />
               </div>
-              <form onSubmit={submitMessage} className="flex gap-2 border-t border-white/10 p-4"><label htmlFor="meeting-message" className="sr-only">Message everyone</label><input id="meeting-message" value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Message everyone" className="min-h-12 min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 text-base outline-none placeholder:text-slate-500 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20" /><button type="submit" disabled={!message.trim()} aria-label="Send message" className="flex size-12 cursor-pointer items-center justify-center rounded-xl bg-blue-600 text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40"><Send className="size-5" /></button></form>
-            </> : <div className="flex-1 space-y-2 overflow-y-auto p-4"><div className="flex items-center gap-3 rounded-xl bg-slate-900 p-3"><div className="flex size-10 items-center justify-center rounded-full bg-blue-600 font-bold">{username.slice(0, 1).toUpperCase()}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{username} (You)</p><p className="text-xs text-slate-400">Host</p></div><Mic className="size-4 text-emerald-400" /></div>{videos.map((video, index) => <div key={video.socketId} className="flex items-center gap-3 rounded-xl p-3 hover:bg-slate-900"><div className="flex size-10 items-center justify-center rounded-full bg-blue-600 font-bold">P</div><p className="flex-1 text-sm font-semibold">Participant {index + 2}</p><Mic className="size-4 text-slate-400" /></div>)}</div>}
+              <form onSubmit={submitMessage} className="flex gap-2 border-t border-white/10 p-4"><label htmlFor="meeting-message" className="sr-only">Message everyone</label><input id="meeting-message" value={message} onChange={(event) => setMessage(event.target.value)} disabled={!socketConnected} placeholder={socketConnected ? "Message everyone" : "Reconnecting…"} className="min-h-12 min-w-0 flex-1 rounded-lg border border-white/10 bg-slate-900 px-4 text-base outline-none placeholder:text-slate-500 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 disabled:opacity-50" /><button type="submit" disabled={!message.trim() || !socketConnected} aria-label="Send message" className="flex size-12 cursor-pointer items-center justify-center rounded-lg bg-emerald-700 text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40"><Send className="size-5" /></button></form>
+            </> : <div className="flex-1 space-y-2 overflow-y-auto p-4"><div className="flex items-center gap-3 rounded-xl bg-slate-900 p-3"><div className="flex size-10 items-center justify-center rounded-full bg-emerald-700 font-bold">{username.slice(0, 1).toUpperCase()}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{username} (You)</p><p className="text-xs text-slate-400">Host</p></div><Mic className="size-4 text-emerald-400" /></div>{videos.map((video, index) => <div key={video.socketId} className="flex items-center gap-3 rounded-xl p-3 hover:bg-slate-900"><div className="flex size-10 items-center justify-center rounded-full bg-emerald-700 font-bold">P</div><p className="flex-1 text-sm font-semibold">Participant {index + 2}</p><Mic className="size-4 text-slate-400" /></div>)}</div>}
           </aside>
         )}
       </main>
 
-      <nav aria-label="Meeting controls" className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-slate-950/95 px-3 py-3 backdrop-blur sm:px-6">
+      <nav aria-label="Meeting controls" className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-slate-950 px-2 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-3">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-2">
           <div className="hidden min-w-28 text-xs text-slate-400 md:block"><p className="font-semibold text-slate-200">{new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p><p className="truncate">{roomName}</p></div>
-          <div className="flex flex-1 items-center justify-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center justify-center gap-1 sm:gap-2">
             <ControlButton active={audioEnabled} label={audioEnabled ? "Mute" : "Unmute"} onClick={toggleAudio}>{audioEnabled ? <Mic className="size-5" /> : <MicOff className="size-5" />}</ControlButton>
             <ControlButton active={videoEnabled} label={videoEnabled ? "Stop video" : "Start video"} onClick={toggleVideo}>{videoEnabled ? <Video className="size-5" /> : <VideoOff className="size-5" />}</ControlButton>
             <ControlButton active={!isSharing} label={isSharing ? "Stop sharing" : "Share screen"} onClick={handleScreenShare}><MonitorUp className="size-5" /></ControlButton>
-            <ControlButton label="People" onClick={() => setPanel(panel === "people" ? null : "people")}><Users className="size-5" /><span className="rounded-full bg-slate-700 px-1.5 text-xs">{participants}</span></ControlButton>
+            <ControlButton label="People" onClick={() => setPanel(panel === "people" ? null : "people")}><Users className="size-5" /><span className="hidden rounded-full bg-slate-700 px-1.5 text-xs sm:inline">{participants}</span></ControlButton>
             <ControlButton label="Chat" onClick={() => setPanel(panel === "chat" ? null : "chat")}><MessageSquare className="size-5" /></ControlButton>
             <ControlButton danger label="Leave" onClick={leaveMeeting}><PhoneOff className="size-5" /></ControlButton>
           </div>
