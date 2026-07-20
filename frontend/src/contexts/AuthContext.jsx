@@ -2,9 +2,10 @@ import axios from "axios";
 import { useMemo, useState } from "react";
 import { status } from "http-status";
 import { AuthContext } from "./auth-context";
+import { apiUrl } from "../config/api";
 
 const client = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8080/api/v1/users`,
+  baseURL: apiUrl,
 });
 
 export function AuthProvider({ children }) {

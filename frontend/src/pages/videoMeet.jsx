@@ -3,8 +3,8 @@ import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import { LobbyPage } from "./LobbyPage";
 import { MeetingPage } from "./MeetingPage";
+import { backendUrl } from "../config/api";
 
-const serverUrl = import.meta.env.VITE_SERVER_URL || `http://${window.location.hostname}:8080`;
 const peerConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
 export default function VideoMeetComponent() {
@@ -82,7 +82,7 @@ export default function VideoMeetComponent() {
 
   const connectToRoom = useCallback(() => {
     if (socketRef.current) return;
-    const socket = io(serverUrl, { transports: ["websocket", "polling"] });
+    const socket = io(backendUrl, { transports: ["websocket", "polling"] });
     socketRef.current = socket;
     socket.on("signal", (fromId, message) => handleSignal(fromId, message).catch(console.error));
     socket.on("connect", () => { socketIdRef.current = socket.id; socket.emit("join-call", roomId); });
