@@ -1,86 +1,34 @@
-import axios, { HttpStatusCode } from 'axios';
-import { createContext, useContext, useState } from 'react';
-import {status} from 'http-status';
-
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
-
-
-export const AuthContext  = createContext({});
+import axios from "axios";
+import { useMemo, useState } from "react";
+import { status } from "http-status";
+import { AuthContext } from "./auth-context";
 
 const client = axios.create({
-     baseURL : "http://localhost:8080/api/v1/users"
-})
+  baseURL: import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8080/api/v1/users`,
+});
 
-export const AuthProvider = ({children}) => {
-const authContext = useContext(AuthContext);
+export function AuthProvider({ children }) {
+  const [userData, setUserData] = useState(null);
 
-    const router = useNavigate();
+  const handleRegister = async (name, username, email, password) => {
+    const request = await client.post("/register", { name, username, email, password });
+    if (request.status === status.CREATED) return request.data.message;
+    return "Account created";
+  };
 
-
-const handleRegister = async(name , username , email , password) => {
-
-    try{
-     let request = await client.post("/register" , {
-        name : name,
-        username : username,
-        email : email,
-        password : password
-     })
-
-     if(request.status === status.CREATED) {
-        return request.data.message;
-     }
-    }catch(err){
-        throw err;
+  const handleLogin = async (username, password) => {
+    const request = await client.post("/login", { username, password });
+    if (request.status === status.OK) {
+      localStorage.setItem("token", request.data.token);
+      return request.data.message;
     }
+    return "Signed in";
+  };
+
+  const value = useMemo(
+    () => ({ userData, setUserData, handleRegister, handleLogin }),
+    [userData],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
-
-
-const handleLogin = async(username , password) => {
-
-    try{
-     let request = await client.post("/login" , {
-        username : username,
-        password : password
-     })
-
-     if(request.status === status.OK) {
-        localStorage.setItem("token" , request.data.token);
-       return request.data.message;
-
-     }
-     
-
-
-    }catch(err){
-        throw err;
-    }
-}
-
-
-
-    const [userData , setUserData] = useState(authContext);
-
-
-
-
-
-
-
-    const data = {
-        userData , setUserData , handleRegister , handleLogin
-    }
-
-
-
-
-    return (
-       < AuthContext.Provider value={data} >
-        {children}
-       </AuthContext.Provider> 
-    )
-
-
-
- }
