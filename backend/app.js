@@ -6,8 +6,11 @@ import {userRoutes} from './src/routes/userRoutes.js';
 // const userRoutes = require("./src/routes/userRoutes.js")
 
 import mongoose from "mongoose";
- import cors from "cors";
+import cors from "cors";
+import { loadEnvFile } from "node:process";
+import { fileURLToPath } from "node:url";
 import { connetTosocket } from "./src/controllers/socketIoManager.js";
+import { corsOrigin } from "./src/config/cors.js";
 import { stat } from "node:fs";
 // import flash from "connect-flash";
 
@@ -16,8 +19,14 @@ const app = express();
 const server = createServer(app);
 const io = connetTosocket(server);
 
+try {
+    loadEnvFile(fileURLToPath(new URL(".env", import.meta.url)));
+} catch (error) {
+    if (error.code !== "ENOENT") throw error;
+}
 
-app.use(cors());
+
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json({limit : "40kb"}));
 app.use(express.urlencoded({limit : "40kb" , extended : true}));
 
@@ -50,8 +59,8 @@ async function main(){
     server.listen(app.get("port") , () => {
     console.log("server is listening at port 8080");
 })
-    const dbUrl = 'mongodb://127.0.0.1:27017/AuraMeet';
-    await mongoose.connect(dbUrl);
+    const dbUrl = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/AuraMeet';
+    await mongoose.connect(dbUrl, { dbName: "aurameet" });
  
 }
 

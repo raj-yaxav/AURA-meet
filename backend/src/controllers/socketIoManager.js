@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Server } from "socket.io";
+import { corsOrigin } from "../config/cors.js";
 
 const rooms = new Map();
 const socketRooms = new Map();
@@ -7,7 +8,7 @@ const roomMessages = new Map();
 
 export const connetTosocket = (server) => {
   const io = new Server(server, {
-    cors: { origin: "*", methods: ["GET", "POST"] },
+    cors: { origin: corsOrigin, methods: ["GET", "POST"] },
   });
 
   io.on("connection", (socket) => {
